@@ -29,7 +29,7 @@ def read_catalog(catalog_file):
     return catalog
 
 
-def read_offers(offers_file, teller):
+def read_offers(offers_file, catalog, teller):
     if not offers_file.exists():
         return
     with open(offers_file, "r") as f:
@@ -38,8 +38,9 @@ def read_offers(offers_file, teller):
             name = row['name']
             offerType = SpecialOfferType[row['offer']]
             argument = float(row['argument'])
-            product = teller.product_with_name(name)
-            teller.add_special_offer(offerType, product, argument)
+            if name in catalog.products:
+                product = catalog.products[name]
+                teller.add_special_offer(offerType, product, argument)
 
 
 def read_basket(cart_file, catalog):
@@ -57,10 +58,10 @@ def read_basket(cart_file, catalog):
 
 
 def main(args):
-    catalog = read_catalog(Path("catalog.csv"))
+    catalog = read_catalog(Path("files/catalog.csv"))
     teller = Teller(catalog)
-    read_offers(Path("offers.csv"), teller)
-    basket = read_basket(Path("cart.csv"), catalog)
+    read_offers(Path("files/offers.csv"), catalog, teller)
+    basket = read_basket(Path("files/cart.csv"), catalog)
     receipt = teller.checks_out_articles_from(basket)
     print(ReceiptPrinter().print_receipt(receipt))
 

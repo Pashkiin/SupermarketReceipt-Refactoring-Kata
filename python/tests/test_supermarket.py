@@ -7,27 +7,76 @@ from tests.fake_catalog import FakeCatalog
 
 
 class SupermarketTest(unittest.TestCase):
-    def test_ten_percent_discount(self):
-        catalog = FakeCatalog()
-        toothbrush = Product("toothbrush", ProductUnit.EACH)
-        catalog.add_product(toothbrush, 0.99)
+    def setUp(self):
+        self.catalog = FakeCatalog()
+        self.teller = Teller(self.catalog)
+        self.cart = ShoppingCart()
 
-        apples = Product("apples", ProductUnit.KILO)
-        catalog.add_product(apples, 1.99)
+        self.toothbrush = Product("toothbrush", ProductUnit.EACH)
+        self.catalog.add_product(self.toothbrush, 0.99)
+        
+        self.apples = Product("apples", ProductUnit.KILO)
+        self.catalog.add_product(self.apples, 1.99)
 
-        teller = Teller(catalog)
-        teller.add_special_offer(SpecialOfferType.TEN_PERCENT_DISCOUNT, toothbrush, 10.0)
-
-        cart = ShoppingCart()
-        cart.add_item_quantity(apples, 2.5)
-
-        receipt = teller.checks_out_articles_from(cart)
-
-        self.assertAlmostEqual(receipt.total_price(), 4.975, places=2)
+    def test_no_discounts(self):
+        self.cart.add_item_quantity(self.apples, 2.0)
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        # 2kg * 1.99 = 3.98
+        self.assertAlmostEqual(receipt.total_price(), 3.98, places=2)
         self.assertEqual([], receipt.discounts)
-        self.assertEqual(1, len(receipt.items))
-        receipt_item = receipt.items[0]
-        self.assertEqual(apples, receipt_item.product)
-        self.assertEqual(1.99, receipt_item.price)
-        self.assertAlmostEqual(receipt_item.total_price, 2.5 * 1.99, places=2)
-        self.assertEqual(2.5, receipt_item.quantity)
+
+    def test_ten_percent_discount(self):
+        self.teller.add_special_offer(SpecialOfferType.TEN_PERCENT_DISCOUNT, self.toothbrush, 10.0)
+
+        self.cart.add_item_quantity(self.toothbrush, 1.0)
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        # 0.99 - 0.099 = 0.891
+        self.assertAlmostEqual(receipt.total_price(), 0.891, places=3)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_three_for_two_discount(self):
+        self.teller.add_special_offer(SpecialOfferType.THREE_FOR_TWO, self.toothbrush, 0.0)
+        
+        self.cart.add_item_quantity(self.toothbrush, 3.0)   
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        # 2 * 0.99 = 1.98
+        self.assertAlmostEqual(receipt.total_price(), 1.98, places=2)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_three_for_two_discount_with_excess_items(self):
+        self.teller.add_special_offer(SpecialOfferType.THREE_FOR_TWO, self.toothbrush, 0.0)
+        
+        self.cart.add_item_quantity(self.toothbrush, 4.0) 
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        # (2 * 0.99) + (1 * 0.99) = 2.97
+        self.assertAlmostEqual(receipt.total_price(), 2.97, places=2)
+
+    def test_two_for_amount_discount(self):
+        self.teller.add_special_offer(SpecialOfferType.TWO_FOR_AMOUNT, self.toothbrush, 1.50)
+        self.cart.add_item_quantity(self.toothbrush, 2.0)
+        
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        self.assertAlmostEqual(receipt.total_price(), 1.50, places=2)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_five_for_amount_discount(self):
+        self.teller.add_special_offer(SpecialOfferType.FIVE_FOR_AMOUNT, self.toothbrush, 4.00)   
+        self.cart.add_item_quantity(self.toothbrush, 5.0)
+        
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        self.assertAlmostEqual(receipt.total_price(), 4.00, places=2)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_five_for_amount_discount_with_six_items(self):
+        self.teller.add_special_offer(SpecialOfferType.FIVE_FOR_AMOUNT, self.toothbrush, 4.00)
+        self.cart.add_item_quantity(self.toothbrush, 6.0)
+        
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        self.assertAlmostEqual(receipt.total_price(), 4.99, places=2)
