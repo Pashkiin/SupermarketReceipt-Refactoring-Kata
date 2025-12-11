@@ -1,5 +1,6 @@
 from enum import Enum
 import math
+from abc import ABC, abstractmethod
 
 
 class Product:
@@ -31,28 +32,18 @@ class Discount:
         self.description = description
         self.discount_amount = discount_amount
 
-class Offer:
-    def __init__(self, offer_type, product, argument):
-        self.offer_type = offer_type
+class Offer(ABC):
+    def __init__(self, product, argument):
         self.product = product
         self.argument = argument
 
+    @abstractmethod
     def calculate_discount(self, quantity, unit_price):
-        if self.offer_type == SpecialOfferType.THREE_FOR_TWO:
-            return self._handle_three_for_two(quantity, unit_price)
-        
-        if self.offer_type == SpecialOfferType.TEN_PERCENT_DISCOUNT:
-            return self._handle_ten_percent_discount(quantity, unit_price)
-        
-        if self.offer_type == SpecialOfferType.TWO_FOR_AMOUNT:
-            return self._handle_two_for_amount(quantity, unit_price)
-        
-        if self.offer_type == SpecialOfferType.FIVE_FOR_AMOUNT:
-            return self._handle_five_for_amount(quantity, unit_price)
-            
-        return None
+        pass
 
-    def _handle_three_for_two(self, quantity, unit_price):
+
+class ThreeForTwoOffer(Offer):
+    def calculate_discount(self, quantity, unit_price):
         quantity_as_int = int(quantity)
         if quantity_as_int <= 2:
             return None
@@ -60,11 +51,15 @@ class Offer:
             (math.floor(quantity_as_int / 3) * 2 * unit_price) + quantity_as_int % 3 * unit_price)
         return Discount(self.product, "3 for 2", -discount_amount)
 
-    def _handle_ten_percent_discount(self, quantity, unit_price):
+
+class TenPercentDiscountOffer(Offer):
+    def calculate_discount(self, quantity, unit_price):
         discount_amount = quantity * unit_price * self.argument / 100.0
         return Discount(self.product, str(self.argument) + "% off", -discount_amount)
 
-    def _handle_two_for_amount(self, quantity, unit_price):
+
+class TwoForAmountOffer(Offer):
+    def calculate_discount(self, quantity, unit_price):
         quantity_as_int = int(quantity)
         if quantity_as_int < 2:
             return None
@@ -72,10 +67,25 @@ class Offer:
         discount_n = unit_price * quantity - total
         return Discount(self.product, "2 for " + str(self.argument), -discount_n)
 
-    def _handle_five_for_amount(self, quantity, unit_price):
+
+class FiveForAmountOffer(Offer):
+    def calculate_discount(self, quantity, unit_price):
         quantity_as_int = int(quantity)
         if quantity_as_int < 5:
             return None
         discount_total = unit_price * quantity - (
             self.argument * math.floor(quantity_as_int / 5) + quantity_as_int % 5 * unit_price)
         return Discount(self.product, "5 for " + str(self.argument), -discount_total)
+    
+class OfferFactory:
+    def create(self, offer_type, product, argument):
+        if offer_type == SpecialOfferType.THREE_FOR_TWO:
+            return ThreeForTwoOffer(product, argument)
+        if offer_type == SpecialOfferType.TEN_PERCENT_DISCOUNT:
+            return TenPercentDiscountOffer(product, argument)
+        if offer_type == SpecialOfferType.TWO_FOR_AMOUNT:
+            return TwoForAmountOffer(product, argument)
+        if offer_type == SpecialOfferType.FIVE_FOR_AMOUNT:
+            return FiveForAmountOffer(product, argument)
+        
+        raise ValueError(f"Unknown offer type: {offer_type}")

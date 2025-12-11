@@ -25,7 +25,8 @@ class ShoppingCart:
         else:
             self._product_quantities[product] = quantity
 
-    def handle_offers(self, receipt, offers, catalog):
+    def calculate_discounts(self, offers, catalog):
+        discounts = []
         for product, quantity in self._product_quantities.items():
             if product in offers:
                 offer = offers[product]
@@ -34,4 +35,6 @@ class ShoppingCart:
                 discount = offer.calculate_discount(quantity, unit_price)
                 
                 if discount:
-                    receipt.add_discount(discount)
+                    discounts.append(discount)
+        
+        return discounts
