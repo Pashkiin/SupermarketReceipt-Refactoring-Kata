@@ -1,3 +1,5 @@
+import datetime
+
 from model_objects import OfferFactory, BundleOffer
 from receipt import Receipt
 from discount_calculator import DiscountCalculator
@@ -16,7 +18,10 @@ class Teller:
     def add_bundle_offer(self, bundle_products, discount_percentage):
         self.bundle_offers.append(BundleOffer(bundle_products, discount_percentage))
 
-    def checks_out_articles_from(self, the_cart):
+    def checks_out_articles_from(self, the_cart, current_date=None):
+        if current_date is None:
+            current_date = datetime.date.today()
+
         receipt = Receipt()
         product_quantities = the_cart.items
         for pq in product_quantities:
@@ -27,8 +32,13 @@ class Teller:
             receipt.add_product(p, quantity, unit_price, price)
 
         calculator = DiscountCalculator(self.catalog, self.offers, self.bundle_offers)
-        discounts = calculator.calculate_discounts(the_cart.product_quantities)
         
+        discounts = calculator.calculate_discounts(
+            the_cart.product_quantities, 
+            the_cart.coupons, 
+            current_date
+        )
+
         for discount in discounts:
             receipt.add_discount(discount)
 

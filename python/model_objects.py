@@ -25,12 +25,22 @@ class SpecialOfferType(Enum):
     TEN_PERCENT_DISCOUNT = 2
     TWO_FOR_AMOUNT = 3
     FIVE_FOR_AMOUNT = 4
+    COUPON_DISCOUNT = 5
 
 class Discount:
     def __init__(self, product, description, discount_amount):
         self.product = product
         self.description = description
         self.discount_amount = discount_amount
+
+class Coupon:
+    def __init__(self, product, code, start_date, end_date, offer_type, argument):
+        self.product = product
+        self.code = code
+        self.start_date = start_date
+        self.end_date = end_date
+        self.offer_type = offer_type
+        self.argument = argument
 
 class Offer(ABC):
     def __init__(self, product, argument):
@@ -77,6 +87,23 @@ class FiveForAmountOffer(Offer):
             self.argument * math.floor(quantity_as_int / 5) + quantity_as_int % 5 * unit_price)
         return Discount(self.product, "5 for " + str(self.argument), -discount_total)
     
+class CouponDiscountOffer(Offer):    
+    def calculate_discount(self, quantity, unit_price):
+        arg = self.argument
+        threshold = arg['threshold']
+        limit = arg['limit']
+        percent = arg['percent']
+
+        quantity_as_int = int(quantity)
+        
+        if quantity_as_int <= threshold:
+            return None
+            
+        discountable_items = min(quantity_as_int - threshold, limit)
+        discount_amount = discountable_items * unit_price * (percent / 100.0)
+        
+        return Discount(self.product, f"Coupon {self.argument}% off next {limit} items", -discount_amount)
+    
 class OfferFactory:
     def create(self, offer_type, product, argument):
         if offer_type == SpecialOfferType.THREE_FOR_TWO:
@@ -87,9 +114,11 @@ class OfferFactory:
             return TwoForAmountOffer(product, argument)
         if offer_type == SpecialOfferType.FIVE_FOR_AMOUNT:
             return FiveForAmountOffer(product, argument)
+        if offer_type == SpecialOfferType.COUPON_DISCOUNT:
+            return CouponDiscountOffer(product, argument)
         
         raise ValueError(f"Unknown offer type: {offer_type}")
-    
+        
 class BundleOffer:
     def __init__(self, bundle_spec, discount_percentage):
         self.bundle_spec = bundle_spec

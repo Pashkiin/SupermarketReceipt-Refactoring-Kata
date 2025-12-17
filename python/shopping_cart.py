@@ -1,11 +1,11 @@
-import math
-from model_objects import ProductQuantity, SpecialOfferType, Discount
+from model_objects import ProductQuantity, Coupon
 
 class ShoppingCart:
 
     def __init__(self):
         self._items = []
         self._product_quantities = {}
+        self._coupons = []
 
     @property
     def items(self):
@@ -24,3 +24,13 @@ class ShoppingCart:
             self._product_quantities[product] = self._product_quantities[product] + quantity
         else:
             self._product_quantities[product] = quantity
+
+    @property
+    def coupons(self):
+        return self._coupons
+
+    def add_coupon(self, product, code, start_date, end_date, offer_type, argument):
+        for c in self._coupons:
+            if c.code == code:
+                return
+        self._coupons.append(Coupon(product, code, start_date, end_date, offer_type, argument))

@@ -1,4 +1,5 @@
 import unittest
+import datetime
 
 from model_objects import Product, SpecialOfferType, ProductUnit
 from shopping_cart import ShoppingCart
@@ -109,3 +110,104 @@ class SupermarketTest(unittest.TestCase):
         # 7.78 - 0.679 = 7.101
         self.assertAlmostEqual(receipt.total_price(), 7.101, places=3)
         self.assertEqual(1, len(receipt.discounts))
+
+    def test_coupon_valid_date(self):
+        juice = Product("orange juice", ProductUnit.EACH)
+        self.catalog.add_product(juice, 2.00)
+        
+        today = datetime.date(2025, 1, 1)
+        self.cart.add_item_quantity(juice, 12.0)
+        coupon_arg = {'threshold': 6, 'limit': 6, 'percent': 50.0}
+
+        self.cart.add_coupon(
+            product=juice, 
+            code="OJ-DEAL", 
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 10),
+            offer_type=SpecialOfferType.COUPON_DISCOUNT,
+            argument=coupon_arg
+        )
+        
+        receipt = self.teller.checks_out_articles_from(self.cart, current_date=today)
+        
+        # Coupon applied: 6 * 2.00 + (6 * 2.00)*50% = 18.00
+        self.assertAlmostEqual(receipt.total_price(), 18.00, places=2)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_coupon_invalid_date(self):
+        juice = Product("orange juice", ProductUnit.EACH)
+        self.catalog.add_product(juice, 2.00)
+        
+        today = datetime.date(2025, 2, 1)
+        self.cart.add_item_quantity(juice, 12.0)
+        coupon_arg = {'threshold': 6, 'limit': 6, 'percent': 50.0}
+        
+        self.cart.add_coupon(
+            product=juice, 
+            code="OJ-DEAL", 
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 10),
+            offer_type=SpecialOfferType.COUPON_DISCOUNT,
+            argument=coupon_arg
+        )
+        
+        receipt = self.teller.checks_out_articles_from(self.cart, current_date=today)
+        
+        # Coupon ignored: 12 * 2.00 = 24.00
+        self.assertAlmostEqual(receipt.total_price(), 24.00, places=2)
+        self.assertEqual(0, len(receipt.discounts))
+
+    def test_coupon_used_only_once(self):       
+        juice = Product("orange juice", ProductUnit.EACH)
+        self.catalog.add_product(juice, 2.00)
+
+        today = datetime.date(2025, 1, 1)
+        self.cart.add_item_quantity(juice, 24.0)
+        coupon_arg = {'threshold': 6, 'limit': 6, 'percent': 50.0}
+        
+        self.cart.add_coupon(
+            product=juice, 
+            code="OJ-ONCE", 
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 10),
+            offer_type=SpecialOfferType.COUPON_DISCOUNT,
+            argument=coupon_arg
+        )
+        
+        self.cart.add_coupon(
+            product=juice, 
+            code="OJ-ONCE", 
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 10),
+            offer_type=SpecialOfferType.COUPON_DISCOUNT,
+            argument=coupon_arg
+        )
+        
+        receipt = self.teller.checks_out_articles_from(self.cart, current_date=today)
+        
+        # One coupon applied: 18 * 2.00 + (6 * 2.00)*50% = 42.00
+        self.assertAlmostEqual(receipt.total_price(), 42.00, places=2)
+        self.assertEqual(1, len(receipt.discounts))
+
+    def test_coupon_consumes_items_double_offer(self):
+        juice = Product("orange juice", ProductUnit.EACH)
+        self.catalog.add_product(juice, 2.00)
+        self.teller.add_special_offer(SpecialOfferType.THREE_FOR_TWO, juice, 0.0)
+
+        today = datetime.date(2025, 1, 1)
+        self.cart.add_item_quantity(juice, 13.0)
+        coupon_arg = {'threshold': 5, 'limit': 5, 'percent': 50.0}
+        
+        self.cart.add_coupon(
+            product=juice, 
+            code="OJ-DEAL", 
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 10),
+            offer_type=SpecialOfferType.COUPON_DISCOUNT,
+            argument=coupon_arg
+        )
+        
+        receipt = self.teller.checks_out_articles_from(self.cart, current_date=today)
+        # (5 * 2.00) + (5 * 1.00) + (3 for 2 -> 2*2) = 19.00
+        self.assertAlmostEqual(receipt.total_price(), 19.00, places=2)
+        self.assertEqual(2, len(receipt.discounts))
