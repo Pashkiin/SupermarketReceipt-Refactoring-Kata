@@ -89,3 +89,30 @@ class OfferFactory:
             return FiveForAmountOffer(product, argument)
         
         raise ValueError(f"Unknown offer type: {offer_type}")
+    
+class BundleOffer:
+    def __init__(self, bundle_spec, discount_percentage):
+        self.bundle_spec = bundle_spec
+        self.discount_percentage = discount_percentage
+
+    def can_apply_bundle(self, product_quantities):
+        for product, required_qty in self.bundle_spec.items():
+            if product not in product_quantities:
+                return False
+            if product_quantities[product] < required_qty:
+                return False
+        return True
+
+    def get_discount_amount(self, catalog):
+        bundle_price = 0.0
+        for product, required_qty in self.bundle_spec.items():
+            unit_price = catalog.unit_price(product)
+            bundle_price += unit_price * required_qty
+        return bundle_price * (self.discount_percentage / 100.0)
+
+    def get_description(self):
+        return f"Bundle Discount {self.discount_percentage}%"
+
+    def consume(self, product_quantities):
+        for product, required_qty in self.bundle_spec.items():
+            product_quantities[product] -= required_qty

@@ -24,17 +24,3 @@ class ShoppingCart:
             self._product_quantities[product] = self._product_quantities[product] + quantity
         else:
             self._product_quantities[product] = quantity
-
-    def calculate_discounts(self, offers, catalog):
-        discounts = []
-        for product, quantity in self._product_quantities.items():
-            if product in offers:
-                offer = offers[product]
-                unit_price = catalog.unit_price(product)
-                
-                discount = offer.calculate_discount(quantity, unit_price)
-                
-                if discount:
-                    discounts.append(discount)
-        
-        return discounts

@@ -83,19 +83,29 @@ class SupermarketTest(unittest.TestCase):
 
     def test_bundle_discount(self):
         toothpaste = Product("toothpaste", ProductUnit.EACH)
+        chocolate = Product("chocolate", ProductUnit.EACH)
         self.catalog.add_product(toothpaste, 1.79)
+        self.catalog.add_product(chocolate, 5.00)
         
         self.teller.add_bundle_offer(
             bundle_products={self.toothbrush: 1.0, toothpaste: 1.0}, 
             discount_percentage=10.0
         )
+
+        self.teller.add_bundle_offer(
+            bundle_products={chocolate: 1.0, toothpaste: 1.0}, 
+            discount_percentage=10.0
+        )
         
         self.cart.add_item_quantity(self.toothbrush, 1.0)
         self.cart.add_item_quantity(toothpaste, 1.0)
+        self.cart.add_item_quantity(chocolate, 1.0)
         
         receipt = self.teller.checks_out_articles_from(self.cart)
 
-        # 10% of 2.78 = 0.278
-        # 2.78 - 0.278 = 2.502
-        self.assertAlmostEqual(receipt.total_price(), 2.502, places=3)
+
+        # Should apply only one bundle discount (the best one)
+        # (5.00 + 1.79) * 10% = 0.679
+        # 7.78 - 0.679 = 7.101
+        self.assertAlmostEqual(receipt.total_price(), 7.101, places=3)
         self.assertEqual(1, len(receipt.discounts))
