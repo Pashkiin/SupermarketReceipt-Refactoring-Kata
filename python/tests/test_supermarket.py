@@ -211,3 +211,36 @@ class SupermarketTest(unittest.TestCase):
         # (5 * 2.00) + (5 * 1.00) + (3 for 2 -> 2*2) = 19.00
         self.assertAlmostEqual(receipt.total_price(), 19.00, places=2)
         self.assertEqual(2, len(receipt.discounts))
+
+    def test_loyalty_points(self):
+        self.cart.add_item_quantity(self.apples, 10.0)
+        
+        receipt = self.teller.checks_out_articles_from(self.cart)
+        
+        # 19.90 -> 19 points
+        self.assertEqual(receipt.loyalty_points, 19)
+    
+    def test_loyalty_discount(self):
+        self.cart.add_item_quantity(self.apples, 10.0) 
+
+        receipt = self.teller.checks_out_articles_from(
+            self.cart, 
+            available_points=50
+        )
+        
+        self.assertAlmostEqual(receipt.total_price(), 14.90, places=2)
+        self.assertTrue(any(d.description == "Loyalty Discount" for d in receipt.discounts))
+        self.assertEqual(receipt.loyalty_points, 14)
+
+    def test_loyalty_discount_exceeds_total(self):
+        toothpaste = Product("toothpaste", ProductUnit.EACH)
+        self.catalog.add_product(toothpaste, 5.00)
+        self.cart.add_item_quantity(toothpaste, 1.0)
+        
+        receipt = self.teller.checks_out_articles_from(
+            self.cart, 
+            available_points=100
+        )
+        
+        self.assertAlmostEqual(receipt.total_price(), 0.00, places=2)
+        self.assertEqual(receipt.loyalty_points, 0)

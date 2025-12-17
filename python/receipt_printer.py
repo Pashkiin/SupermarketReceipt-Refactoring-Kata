@@ -57,4 +57,8 @@ class ReceiptPrinter:
     def present_total(self, receipt):
         name = "Total: "
         value = self.print_price(receipt.total_price())
-        return self.format_line_with_whitespace(name, value)
+        result = self.format_line_with_whitespace(name, value)
+        result += "\n"
+        result += f"Loyalty Points Earned: {receipt.loyalty_points}\n"
+        
+        return result

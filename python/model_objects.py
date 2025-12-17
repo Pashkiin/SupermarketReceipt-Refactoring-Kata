@@ -2,6 +2,7 @@ from enum import Enum
 import math
 from abc import ABC, abstractmethod
 
+LOYALTY_POINT_VALUE = 0.10
 
 class Product:
     def __init__(self, name, unit):
@@ -102,7 +103,7 @@ class CouponDiscountOffer(Offer):
         discountable_items = min(quantity_as_int - threshold, limit)
         discount_amount = discountable_items * unit_price * (percent / 100.0)
         
-        return Discount(self.product, f"Coupon {self.argument}% off next {limit} items", -discount_amount)
+        return Discount(self.product, f"Coupon {percent}% off next {limit} items", -discount_amount)
     
 class OfferFactory:
     def create(self, offer_type, product, argument):
@@ -140,7 +141,9 @@ class BundleOffer:
         return bundle_price * (self.discount_percentage / 100.0)
 
     def get_description(self):
-        return f"Bundle Discount {self.discount_percentage}%"
+        product_names = sorted([p.name for p in self.bundle_spec.keys()])
+        names_str = ", ".join(product_names)
+        return f"Bundle {self.discount_percentage}% ({names_str})"
 
     def consume(self, product_quantities):
         for product, required_qty in self.bundle_spec.items():

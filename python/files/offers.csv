@@ -1,2 +1,4 @@
 name,offer,argument
-toothbrush,TEN_PERCENT_DISCOUNT,10.0
+toothbrush|toothpaste,BUNDLE,10.0
+orange juice,COUPON_DISCOUNT,threshold=6;limit=6;percent=50.0;code=OJ-DEAL-2025;valid_days=7
+apples,TEN_PERCENT_DISCOUNT,10.0
